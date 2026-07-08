@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
+from itertools import groupby
 
 
 class Owner:
@@ -8,8 +9,11 @@ class Owner:
         self.pets = []
 
     def add_pet(self, pet):
-        """Add a pet to this owner's list of pets."""
+        """Add a pet to this owner's list of pets, rejecting duplicate names. Returns True if added."""
+        if any(existing.name.lower() == pet.name.lower() for existing in self.pets):
+            return False
         self.pets.append(pet)
+        return True
 
     def remove_pet(self, pet_name):
         """Remove the first pet matching the given name."""
@@ -95,8 +99,8 @@ class Scheduler:
         return self.sort_by_time(self.owner.get_all_tasks())
 
     def sort_by_time(self, tasks):
-        """Return the given tasks sorted from earliest to latest."""
-        return sorted(tasks, key=lambda task: task.get_datetime())
+        """Return the given tasks sorted from earliest to latest, tying on pet name."""
+        return sorted(tasks, key=lambda task: (task.get_datetime(), task.pet.name if task.pet else ""))
 
     def filter_tasks(self, tasks, pet_name=None, completed=None):
         """Return only the tasks matching the given pet name and/or completed status."""
@@ -108,15 +112,65 @@ class Scheduler:
         return filtered
 
     def detect_conflicts(self, tasks):
-        """Return pairs of tasks that are scheduled at the exact same date and time."""
-        conflicts = []
-        sorted_tasks = self.sort_by_time(tasks)
-        for i in range(len(sorted_tasks)):
-            for j in range(i + 1, len(sorted_tasks)):
-                if sorted_tasks[i].get_datetime() != sorted_tasks[j].get_datetime():
-                    break
-                conflicts.append((sorted_tasks[i], sorted_tasks[j]))
-        return conflicts
+        """Return warning strings for any tasks scheduled at the same date and time.
+
+        Flags both a single pet double-booked and different pets both needing
+        attention at once. Tasks with unparseable date/time data are skipped
+        (with their own warning) instead of crashing the scan.
+        """
+        valid_tasks = []
+        warnings = []
+        for task in tasks:
+            try:
+                task.get_datetime()
+            except (ValueError, TypeError):
+                warnings.append(f"Skipped '{task.title}': invalid date/time ({task.date!r} {task.time!r}).")
+            else:
+                valid_tasks.append(task)
+
+        sorted_tasks = self.sort_by_time(valid_tasks)
+        for _, group in groupby(sorted_tasks, key=lambda t: t.get_datetime()):
+            same_time = list(group)
+            if len(same_time) < 2:
+                continue
+
+            when = f"{same_time[0].date} {same_time[0].time}"
+
+            by_pet = {}
+            for task in same_time:
+                by_pet.setdefault(task.pet, []).append(task)
+
+            for pet, pet_tasks in by_pet.items():
+                if pet is not None and len(pet_tasks) > 1:
+                    titles = ", ".join(f"'{t.title}'" for t in pet_tasks)
+                    warnings.append(f"{pet.name} is double-booked at {when}: {titles}.")
+
+            distinct_pets = {task.pet for task in same_time}
+            if len(distinct_pets) > 1:
+                names = ", ".join(sorted(pet.name if pet else "Unassigned" for pet in distinct_pets))
+                warnings.append(f"Multiple pets need attention at {when}: {names}.")
+
+        return warnings
+
+    def complete_task(self, task):
+        """Mark a task complete and, if it recurs, schedule its next occurrence starting from today."""
+        task.mark_complete()
+        if task.pet is None:
+            return
+
+        delta = self._FREQUENCY_DELTAS.get(task.frequency)
+        if delta is None:
+            return
+
+        next_date = date.today() + delta
+        task.pet.add_task(Task(
+            title=task.title,
+            notes=task.notes,
+            date=next_date.strftime("%Y-%m-%d"),
+            time=task.time,
+            frequency=task.frequency,
+            pet=task.pet,
+        ))
 
     def generate_recurring_instances(self, task, count=1):
         """Create the next 'count' future occurrences of a recurring task."""

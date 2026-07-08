@@ -68,14 +68,12 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
-
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Task sorting | `Scheduler.sort_by_time()` | Sorts tasks by `Task.get_datetime()` (date + time combined into a real `datetime`), tie-breaking on pet name so same-time tasks have a stable order. Used internally by `Scheduler.get_schedule()`. |
+| Filtering | `Scheduler.filter_tasks()` | Filters a task list by pet name and/or completion status; either can be omitted to skip that filter. Powers the "Filter by pet" and "Hide completed" controls in `app.py`. |
+| Conflict handling | `Scheduler.detect_conflicts()` | Groups the sorted list by exact same date+time with `itertools.groupby`, then flags both a single pet double-booked and different pets both needing attention at once. Returns ready-to-display warning strings and skips any task with unparseable date/time data instead of crashing. |
+| Recurring tasks | `Scheduler.complete_task()` | Marking a task complete rolls it forward automatically for `"daily"`/`"weekly"`/`"monthly"` frequencies (via `Scheduler._FREQUENCY_DELTAS`), scheduling the next occurrence at *today's date* + the frequency offset (not the original due date), keeping the same time-of-day. Non-recurring tasks just get marked complete. |
 
 ## 📸 Demo Walkthrough
 
