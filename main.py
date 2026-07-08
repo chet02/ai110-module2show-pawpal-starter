@@ -1,7 +1,3 @@
-"""Terminal demo: adds tasks out of chronological order, then prints them
-through Scheduler.get_schedule() and Scheduler.filter_tasks() to show that
-sorting and filtering work correctly."""
-
 from pawpal_system import Owner, Pet, Task, Scheduler
 
 owner = Owner("Alex")
