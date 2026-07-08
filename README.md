@@ -54,17 +54,33 @@ pip install -r requirements.txt
 
 ```bash
 # Run the full test suite:
-pytest
+python -m pytest
 
 # Run with coverage:
 pytest --cov
 ```
+What the tests cover (`tests/test_pawpal.py`):
+
+- **Task basics** — marking a task complete flips its status; adding a task to a pet increases that pet's task count.
+- **Sorting correctness** — tasks added out of chronological order across multiple pets come back from `Scheduler.get_schedule()` sorted earliest-to-latest.
+- **Recurrence logic** — completing a `"daily"` task marks it done and automatically schedules a new, incomplete follow-up task for the next occurrence.
+- **Conflict detection** — `Scheduler.detect_conflicts()` flags a single pet double-booked at the same time and different pets both needing attention at once, and reports no warnings when task times don't overlap.
 
 Sample test output:
 
 ```
-# Paste your pytest output here
+============================= test session starts ==============================
+collected 6 items
+
+tests/test_pawpal.py ......                                              [100%]
+
+============================== 6 passed in 0.02s ===============================
+
 ```
+
+**Confidence level: ★★★☆☆ (3/5)**
+
+All 6 tests pass, and the core happy paths — sorting, filtering, recurrence, and conflict detection between assigned pets — are verified. Confidence isn't higher because several edge cases aren't covered yet: conflicts between unassigned (no-pet) tasks at the same time, malformed date/time strings outside `detect_conflicts`, duplicate task titles on removal, and the 30-day (non-calendar-accurate) monthly recurrence math. Treat this as solid on the primary workflow, less proven on the edges.
 
 ## 📐 Smarter Scheduling
 
