@@ -3,9 +3,17 @@
 ## 1. System Design
 
 **a. Initial design**
+- Three core actions a user should be able to perform: 
+
+    For PawPal+, the three core actions I identified are adding a pet, scheduling a care task, and viewing today's schedule. Adding a pet allows the owner to keep track of each animal they care for. Scheduling a task lets the owner create reminders for important routines like feeding, walks, medication, or vet visits. Viewing today's schedule helps the owner see all tasks in one place so they can stay organized and avoid missing important care responsibilities.
 
 - Briefly describe your initial UML design.
 - What classes did you include, and what responsibilities did you assign to each?
+
+    My initial UML design includes four main classes: Owner, Pet, Task, and Scheduler.
+
+    The Owner class is responsible for managing multiple pets and providing access to all of their information. The Pet class stores details about each pet, such as its name, type, and the list of care tasks assigned to it. The Task class represents individual activities like feeding, walking, medication, or vet appointments, and stores information such as the description, scheduled time, frequency, and completion status. The Scheduler class is responsible for organizing tasks, retrieving schedules, sorting tasks by time, filtering tasks, detecting scheduling conflicts, and managing recurring tasks.
+
 
 **b. Design changes**
 
