@@ -109,8 +109,22 @@ else:
         st.success(f"Added '{task_title}' for {selected_pet.name}.")
 
 all_tasks = scheduler.get_schedule()
-for conflict_warning in scheduler.detect_conflicts(all_tasks):
-    st.warning(conflict_warning)
+
+st.subheader("Conflict Check")
+conflict_warnings = scheduler.detect_conflicts(all_tasks)
+if not conflict_warnings:
+    st.success("✅ No scheduling conflicts — you're all set.")
+else:
+    for warning in conflict_warnings:
+        if "double-booked" in warning:
+            # Same pet needed in two places at once: physically impossible, needs a reschedule.
+            st.error(f"🚫 {warning}")
+        elif "Skipped" in warning:
+            # Not a real conflict — bad data hid a task from the conflict scan entirely.
+            st.warning(f"🛠️ {warning}")
+        else:
+            # Different pets need attention at once: doable with help, but plan ahead.
+            st.warning(f"👥 {warning}")
 
 st.write("Current tasks:")
 filter_col1, filter_col2 = st.columns(2)
@@ -153,11 +167,12 @@ else:
 st.divider()
 
 st.subheader("Build Schedule")
-st.caption("Calls Scheduler.get_schedule() to show all tasks sorted by time.")
+st.caption("Shows all tasks sorted chronologically by date and time.")
 
 if st.button("Generate schedule"):
     schedule = scheduler.get_schedule()
     if schedule:
+        st.success(f"✅ Sorted {len(schedule)} task(s) chronologically.")
         st.table(
             [
                 {
@@ -165,6 +180,7 @@ if st.button("Generate schedule"):
                     "Time": task.time,
                     "Pet": task.pet.name if task.pet else "",
                     "Task": task.title,
+                    "Status": "✅ Done" if task.completed else "⏳ Pending",
                 }
                 for task in schedule
             ]

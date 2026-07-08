@@ -42,14 +42,6 @@ pip install -r requirements.txt
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
 
-## 🖥️ Sample Output
-
-    Today's Schedule
-    --------------------
-    08:00 - Rex: Walk
-    12:30 - Milo: Feed
-    16:00 - Rex: Vet visit
-
 ## 🧪 Testing PawPal+
 
 ```bash
@@ -59,12 +51,12 @@ python -m pytest
 # Run with coverage:
 pytest --cov
 ```
-What the tests cover (`tests/test_pawpal.py`):
+What the tests cover (`tests/test_pawpal.py`) — see [Smarter Scheduling](#-smarter-scheduling) below for how each behavior actually works:
 
-- **Task basics** — marking a task complete flips its status; adding a task to a pet increases that pet's task count.
-- **Sorting correctness** — tasks added out of chronological order across multiple pets come back from `Scheduler.get_schedule()` sorted earliest-to-latest.
-- **Recurrence logic** — completing a `"daily"` task marks it done and automatically schedules a new, incomplete follow-up task for the next occurrence.
-- **Conflict detection** — `Scheduler.detect_conflicts()` flags a single pet double-booked at the same time and different pets both needing attention at once, and reports no warnings when task times don't overlap.
+- **Task basics** — marking a task complete, adding a task to a pet.
+- **Sorting correctness** — `Scheduler.get_schedule()`.
+- **Recurrence logic** — `Scheduler.complete_task()`.
+- **Conflict detection** — `Scheduler.detect_conflicts()`, including a no-conflicts case.
 
 Sample test output:
 
@@ -93,12 +85,47 @@ All 6 tests pass, and the core happy paths — sorting, filtering, recurrence, a
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+### Main UI features (`app.py`)
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+- **Owner** — set the pet owner's name.
+- **Add a Pet** — add a pet by name, species, and age; duplicate names (case-insensitive) are rejected.
+- **Schedule a Task** — attach a task (title, notes, date, time, frequency) to a specific pet.
+- **Conflict Check** — automatically flags scheduling problems: 🚫 a single pet double-booked at the same time, 👥 different pets both needing attention at once, or ✅ a clean schedule.
+- **Current tasks** — filter the task list by pet and/or hide completed tasks, and check off a task as done.
+- **Build Schedule** — generate the full task list sorted chronologically.
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+### Example workflow
+
+1. Set the owner's name (e.g., "Alex") and add two pets, "Rex" (dog) and "Milo" (cat).
+2. Schedule "Walk" for Rex at 08:00 and "Feed" for Milo at the same date and time.
+3. The Conflict Check panel immediately flags "Multiple pets need attention at ... : Milo, Rex" since both need care at once.
+4. Click "Generate schedule" to see every task sorted earliest to latest, regardless of the order they were added.
+5. Check off "Walk" as done — since it's a `"daily"` task, `complete_task()` automatically schedules a new "Walk" task for the next day.
+
+### Key Scheduler behaviors shown
+
+Steps 4 and 3/5 above exercise sorting and conflict detection/recurrence, respectively — see [Smarter Scheduling](#-smarter-scheduling) for how `get_schedule()`, `filter_tasks()`, `detect_conflicts()`, and `complete_task()` work under the hood.
+
+### Sample CLI output (`python main.py`)
+
+`main.py` exercises the same `Scheduler` behind a plain terminal script — it adds tasks out of order on purpose, then prints the sorted schedule and two filtered views:
+
+```
+Today's Schedule (sorted by time)
+----------------------------------------
+2026-07-07 08:00 - Rex: Walk
+2026-07-07 12:30 - Milo: Feed
+2026-07-07 16:00 - Rex: Vet visit
+2026-07-08 09:00 - Milo: Brush
+
+Filtered: Rex's tasks only
+----------------------------------------
+2026-07-07 08:00 - Walk
+2026-07-07 16:00 - Vet visit
+
+Filtered: incomplete tasks only
+----------------------------------------
+2026-07-07 08:00 - Rex: Walk
+2026-07-07 12:30 - Milo: Feed
+2026-07-08 09:00 - Milo: Brush
+```
